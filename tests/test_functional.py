@@ -203,7 +203,7 @@ def test_plann():
         assert len(ctx.obj['objs'])==0
 
         ## Journal tests
-        journal1 = _add_journal(ctx, summary=['bought new keyboard'], set_dtstart='2012-12-20')
+        _add_journal(ctx, summary=['bought new keyboard'], set_dtstart='2012-12-20')
         _select(ctx, journal=True)
         assert len(ctx.obj['objs'])==1
         _select(ctx, todo=True)
