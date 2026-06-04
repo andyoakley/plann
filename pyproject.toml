@@ -28,7 +28,6 @@ dependencies = [
     "Click",
     "PyYAML",
     "sortedcontainers",
-    "tzlocal",
     "dateparser>=1.2",
     "icalendar",
 ]
@@ -100,6 +99,3 @@ exclude_lines = [
 
 [tool.deptry]
 pep621_dev_dependency_groups = ["dev"]
-
-[tool.deptry.per_rule_ignores]
-DEP002 = ["tzlocal"]  # Used indirectly by icalendar/caldav
