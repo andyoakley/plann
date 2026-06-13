@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 from caldav import Calendar, Todo
 
+from plann.commands import _no_overwrite
 from plann.lib import (
     _add_category,
     _adjust_ical_relations,
@@ -130,6 +131,27 @@ def test_adjust_ical_relations():
     ## parent list should be unchanged
     assert(rels['PARENT'] == {'PARENT-A0', 'PARENT-A2', 'PARENT-B0', 'PARENT-B2'})
     assert(rels['CHILD'] == {'CHILD-A0', 'CHILD-A1', 'CHILD-A2'})
+
+class MagicContext:
+    """Minimal stand-in for a click.Context with a ctx.obj dict"""
+    def __init__(self, ical_fragment):
+        self.obj = {'ical_fragment': ical_fragment}
+
+
+def test_no_overwrite():
+    ## no ical_fragment given (or empty) - new objects always get a fresh
+    ## random UID, so there's nothing to check for collisions
+    assert not _no_overwrite(MagicContext(None))
+    assert not _no_overwrite(MagicContext(""))
+    assert not _no_overwrite(MagicContext("CATEGORIES:foo,bar"))
+
+    ## a UID given through an ical fragment may collide with an existing
+    ## object, so it's worth checking
+    assert _no_overwrite(MagicContext("UID:some-fixed-uid@example.com"))
+    assert _no_overwrite(MagicContext("CATEGORIES:foo\nUID:some-fixed-uid@example.com"))
+    ## should be case-insensitive
+    assert _no_overwrite(MagicContext("uid:some-fixed-uid@example.com"))
+
 
 #def test_split_vcals():
 ## TODO

@@ -389,6 +389,21 @@ def _process_set_args(ctx, kwargs, keep_category=False):
     if 'ical_fragment' in kwargs:
         ctx.obj['set_args']['ics'] = kwargs['ical_fragment']
 
+def _no_overwrite(ctx):
+    """
+    Checking for an existing object with the same UID requires the server
+    to search the whole calendar for that UID, with no time-range filter -
+    on calendars with many objects, some server implementations will
+    enumerate (and parse) every single object to answer such a query,
+    which can be very slow or even time out.
+
+    New objects get a fresh random UID, so a collision is virtually
+    impossible and the check is rarely worth that cost.  Only do the
+    check if the caller supplied their own UID through an ical fragment
+    (`-l`/`--add-ical-line`), where a collision is plausible.
+    """
+    return bool(re.search(r'(?im)^UID:', ctx.obj.get('ical_fragment') or ''))
+
 def _add_todo(ctx, **kwargs):
     """
     Creates a new task with given SUMMARY
@@ -413,7 +428,7 @@ def _add_todo(ctx, **kwargs):
         duration = ctx.obj['set_args'].pop('duration')
 
     for cal in ctx.obj['calendars']:
-        todo = cal.save_todo(ical=ctx.obj.get('ical_fragment', ""), **ctx.obj['set_args'], no_overwrite=True)
+        todo = cal.save_todo(ical=ctx.obj.get('ical_fragment', ""), **ctx.obj['set_args'], no_overwrite=_no_overwrite(ctx))
         if duration:
             todo.set_duration(duration)
             todo.save()
@@ -427,7 +442,7 @@ def _add_journal(ctx, **kwargs):
         _abort("denying to add a JOURNAL with no summary given")
         return
     for cal in ctx.obj['calendars']:
-        journal = cal.save_journal(ical=ctx.obj.get('ical_fragment', ""), **ctx.obj['set_args'], no_overwrite=True)
+        journal = cal.save_journal(ical=ctx.obj.get('ical_fragment', ""), **ctx.obj['set_args'], no_overwrite=_no_overwrite(ctx))
         click.echo(f"uid={journal.id}")
     return journal
 
@@ -435,7 +450,7 @@ def _add_event(ctx, timespec, **kwargs):
     _process_set_args(ctx, kwargs)
     for cal in ctx.obj['calendars']:
         (dtstart, dtend) = parse_timespec(timespec, for_storage=True)
-        event = cal.save_event(dtstart=dtstart, dtend=dtend, **ctx.obj['set_args'], no_overwrite=True)
+        event = cal.save_event(dtstart=dtstart, dtend=dtend, **ctx.obj['set_args'], no_overwrite=_no_overwrite(ctx))
         click.echo(f"uid={event.id}")
 
 def _agenda(ctx):
