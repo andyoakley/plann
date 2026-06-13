@@ -99,7 +99,15 @@ def cli(ctx, **kwargs):
         if config:
             for meta_section in kwargs['config_section']:
                 for section in expand_config_section(config, meta_section):
-                    ctx.obj['calendars'].extend(find_calendars(config_section(config, section), raise_errors=kwargs['raise_errors']))
+                    section_conf = config_section(config, section)
+                    ## --calendar-url/--calendar-name on the command line should
+                    ## select which calendar(s) to use, overriding anything
+                    ## configured in the config file - rather than being
+                    ## silently ignored.
+                    if kwargs.get('calendar_url') or kwargs.get('calendar_name'):
+                        section_conf['calendar_url'] = kwargs['calendar_url']
+                        section_conf['calendar_name'] = kwargs['calendar_name']
+                    ctx.obj['calendars'].extend(find_calendars(section_conf, raise_errors=kwargs['raise_errors']))
 
 @cli.command()
 @click.pass_context
